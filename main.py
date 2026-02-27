@@ -49,7 +49,7 @@ class Movie(db.Model):
     description: Mapped[str] = mapped_column(String)
     rating: Mapped[float] = mapped_column(Float, default = 0)
     ranking: Mapped[int] = mapped_column(Integer, default=0)
-    review: Mapped[str] = mapped_column(String)
+    review: Mapped[str] = mapped_column(String, nullable=True)
     img_url: Mapped[str] = mapped_column(String, nullable=False)
 
 with app.app_context():
@@ -115,6 +115,8 @@ def edit(movie_id):
 
     # The final thing is to render the edit.html page
 
+
+
     return render_template("edit.html", form=form, movie_id=movie_id)
 
 @app.route("/delete/<int:movie_id>", methods=["GET", "POST"])
@@ -164,6 +166,33 @@ def add():
 
     return render_template("add.html", form=form)
 
+@app.route("/select/<int:movie_id>")
+def select(movie_id):
+    headers = {
+        "Authorization": f"Bearer {ACCESS_TOKEN}",
+        "accept": "application/json"
+    }
+    params = {
+        "language": "en-US"
+    }
+    response = requests.get(url=f"https://api.themoviedb.org/3/movie/{movie_id}", params = params, headers=headers)
+
+    data = response.json()
+
+    selected_movie = Movie(
+        title=data["original_title"],
+        year=data["release_date"].split("-")[0],
+        description=data["overview"],
+        img_url=f"https://image.tmdb.org/t/p/w500{data['poster_path']}",
+    )
+    db.session.add(selected_movie)
+    db.session.commit()
+
+    #return redirect(url_for("home"))
+
+    movie_to_update = db.session.execute(db.select(Movie).where(Movie.title == data["original_title"])).scalar()
+
+    return redirect(url_for("edit", movie_id=movie_to_update.id))
 
 if __name__ == '__main__':
     app.run(debug=True)
