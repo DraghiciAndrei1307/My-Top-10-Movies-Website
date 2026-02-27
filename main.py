@@ -4,7 +4,7 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy import Integer, String, Float
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField
+from wtforms import StringField, FloatField, SubmitField
 from wtforms.validators import DataRequired
 import requests
 
@@ -51,7 +51,7 @@ class Movie(db.Model):
 with app.app_context():
     db.create_all()
 
-
+# Add the first entry into database
 
 with app.app_context():
     new_movie = Movie(
@@ -69,10 +69,44 @@ with app.app_context():
     db.session.add(new_movie)
     db.session.commit()
 
+# Create Flask Form
+
+class MoviesEditForm(FlaskForm):
+    rating = FloatField("Rating", validators=[DataRequired()])
+    review = StringField("Review", validators=[DataRequired()])
+    submit = SubmitField("Submit")
+
+
 @app.route("/")
 def home():
-    return render_template("index.html")
 
+    result = db.session.execute(db.select(Movie))
+    movies = result.scalars()
+    return render_template("index.html", movies=movies)
+
+@app.route("/edit/<int:movie_id>", methods=["GET", "POST"])
+def edit(movie_id):
+
+    # Get the movie we want to update
+
+    movie_to_update = db.session.execute(db.select(Movie).where(Movie.id == int(movie_id))).scalar()
+
+    # Create a form instance
+
+    form = MoviesEditForm()
+
+    # Update the table entry if the submit button was pressed
+
+    if form.validate_on_submit():
+        movie_to_update.rating = form.rating.data
+        movie_to_update.review = form.review.data
+        db.session.commit()
+
+        return redirect(url_for("home"))
+
+    # The final thing is to render the edit.html page
+
+    return render_template("edit.html", form=form, movie_id=movie_id)
 
 if __name__ == '__main__':
     app.run(debug=True)
