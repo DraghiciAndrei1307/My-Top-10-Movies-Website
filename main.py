@@ -21,6 +21,10 @@ pip3 install -r requirements.txt
 This will install the packages from requirements.txt for this project.
 '''
 
+THEMOVIEDB_BASE_URL = "https://api.themoviedb.org/3/search/movie"
+ACCESS_TOKEN = ""
+API_KEY = ""
+
 app = Flask(__name__)
 app.config['SECRET_KEY'] = '8BYkEfBA6O6donzWlSihBXox7C0sKR6b'
 Bootstrap(app)
@@ -69,13 +73,18 @@ with app.app_context():
     db.session.add(new_movie)
     db.session.commit()
 
-# Create Flask Form
+# Create Movie Edit Flask Form
 
 class MoviesEditForm(FlaskForm):
     rating = FloatField("Rating", validators=[DataRequired()])
     review = StringField("Review", validators=[DataRequired()])
     submit = SubmitField("Submit")
 
+# Create Movie Add Flask Form
+
+class MovieAddForm(FlaskForm):
+    title = StringField("Movie Title", validators=[DataRequired()])
+    submit = SubmitField("Submit")
 
 @app.route("/")
 def home():
@@ -107,6 +116,54 @@ def edit(movie_id):
     # The final thing is to render the edit.html page
 
     return render_template("edit.html", form=form, movie_id=movie_id)
+
+@app.route("/delete/<int:movie_id>", methods=["GET", "POST"])
+def delete(movie_id):
+
+    movie_to_delete = db.session.execute(db.select(Movie).where(Movie.id == int(movie_id))).scalar()
+    db.session.delete(movie_to_delete)
+    db.session.commit()
+    return redirect(url_for("home"))
+
+@app.route("/add", methods=["GET", "POST"])
+def add():
+    form = MovieAddForm()
+
+    print("Method:", request.method)
+
+    if form.validate_on_submit():
+        # print("Form validated")
+        movie_title = form.title.data
+        # print("Movie title:", movie_title)
+        headers = {
+            "Authorization": f"Bearer {ACCESS_TOKEN}",
+            "accept": "application/json"
+        }
+
+        response = requests.get(
+            url=THEMOVIEDB_BASE_URL,
+            params={
+                "query": movie_title,
+                "include_adult": "false",
+                "language": "en-US",
+                "page": 1
+            },
+            headers=headers
+        )
+
+        # print("Status:", response.status_code)
+        # print("Response:", response.text)
+
+        results = response.json()["results"]
+
+        # print("Results:", results)
+
+        return render_template("select.html", movies = results)
+
+    # print("Form errors:", form.errors)
+
+    return render_template("add.html", form=form)
+
 
 if __name__ == '__main__':
     app.run(debug=True)
