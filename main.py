@@ -8,21 +8,8 @@ from wtforms import StringField, FloatField, SubmitField
 from wtforms.validators import DataRequired
 import requests
 
-'''
-Red underlines? Install the required packages first: 
-Open the Terminal in PyCharm (bottom left). 
-
-On Windows type:
-python -m pip install -r requirements.txt
-
-On MacOS type:
-pip3 install -r requirements.txt
-
-This will install the packages from requirements.txt for this project.
-'''
-
 THEMOVIEDB_BASE_URL = "https://api.themoviedb.org/3/search/movie"
-ACCESS_TOKEN = ""
+ACCESS_TOKEN = "eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiI3ZmQxY2IwMzliOTk1ODY0YWE0NjI4YWIwNGY5OTAxZSIsIm5iZiI6MTc3MjE4NTAxNS4xNjEsInN1YiI6IjY5YTE2NWI3MDVlZmQxYjFlN2EwYWFkMSIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.Usv8BG9Eab9tTX9KMPQJRTYWSa1sVy2szN-hKwDtbco"
 API_KEY = ""
 
 app = Flask(__name__)
@@ -115,8 +102,6 @@ def edit(movie_id):
 
     # The final thing is to render the edit.html page
 
-
-
     return render_template("edit.html", form=form, movie_id=movie_id)
 
 @app.route("/delete/<int:movie_id>", methods=["GET", "POST"])
@@ -134,9 +119,8 @@ def add():
     print("Method:", request.method)
 
     if form.validate_on_submit():
-        # print("Form validated")
         movie_title = form.title.data
-        # print("Movie title:", movie_title)
+
         headers = {
             "Authorization": f"Bearer {ACCESS_TOKEN}",
             "accept": "application/json"
@@ -153,16 +137,9 @@ def add():
             headers=headers
         )
 
-        # print("Status:", response.status_code)
-        # print("Response:", response.text)
-
         results = response.json()["results"]
 
-        # print("Results:", results)
-
         return render_template("select.html", movies = results)
-
-    # print("Form errors:", form.errors)
 
     return render_template("add.html", form=form)
 
@@ -187,8 +164,6 @@ def select(movie_id):
     )
     db.session.add(selected_movie)
     db.session.commit()
-
-    #return redirect(url_for("home"))
 
     movie_to_update = db.session.execute(db.select(Movie).where(Movie.title == data["original_title"])).scalar()
 
